@@ -1,6 +1,7 @@
 package com.zachvlat.freetok
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,26 +25,80 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Handle incoming intent
+        val sharedUrl = getSharedUrl(intent)
+        
         setContent {
             FreetokTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     TikTokDownloader(
                         context = this@MainActivity,
+                        initialUrl = sharedUrl,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
         }
     }
+    
+    // Handle new intent when app is already running
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val sharedUrl = getSharedUrl(intent)
+        // Update the UI with the new URL
+        // This will be handled in the composable
+    }
+    
+    private fun getSharedUrl(intent: Intent?): String? {
+        return when {
+            // Handle text sharing (SEND intent)
+            intent?.action == Intent.ACTION_SEND && intent.type == "text/plain" -> {
+                intent.getStringExtra(Intent.EXTRA_TEXT)
+            }
+            // Handle URL opening (VIEW intent)
+            intent?.action == Intent.ACTION_VIEW -> {
+                intent.data?.toString()
+            }
+            else -> null
+        }
+    }
 }
 
 @Composable
-fun TikTokDownloader(context: Context, modifier: Modifier = Modifier) {
-    var url by remember { mutableStateOf("") }
+fun TikTokDownloader(context: Context, initialUrl: String? = null, modifier: Modifier = Modifier) {
+    var url by remember { mutableStateOf(initialUrl ?: "") }
     var isLoading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var localVideoPath by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    
+    // Auto-download if URL was shared from another app
+    LaunchedEffect(initialUrl) {
+        if (!initialUrl.isNullOrBlank() && url.isNotBlank()) {
+            android.util.Log.d("FreeTok", "Auto-downloading shared URL: $initialUrl")
+            isLoading = true
+            status = "Processing..."
+            
+            try {
+                val localPath = TikTokDownloaderManager.downloadVideo(initialUrl, context)
+                if (localPath != null) {
+                    localVideoPath = localPath
+                    status = "Video downloaded successfully!"
+                    android.util.Log.d("FreeTok", "Video downloaded to: $localPath")
+                } else {
+                    status = "Failed to download video"
+                    android.util.Log.e("FreeTok", "Failed to download shared video")
+                }
+            } catch (e: Exception) {
+                status = "Error: ${e.message}"
+                android.util.Log.e("FreeTok", "Exception during shared video download", e)
+            } finally {
+                isLoading = false
+                android.util.Log.d("FreeTok", "Shared video download process finished")
+            }
+        }
+    }
 
     localVideoPath?.let { path ->
         VideoPlayerScreen(
