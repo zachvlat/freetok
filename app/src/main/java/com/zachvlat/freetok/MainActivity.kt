@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.OnBackPressedDispatcher
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +38,7 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             var showInfoDialog by remember { mutableStateOf(false) }
+            val backDispatcher = onBackPressedDispatcher
             
             FreetokTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -43,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         context = this@MainActivity,
                         initialUrl = sharedUrl,
                         onInfoClick = { showInfoDialog = true },
+                        onBackPressed = { backDispatcher.onBackPressed() },
                         modifier = Modifier.padding(innerPadding)
                     )
                     
@@ -128,10 +132,28 @@ fun InfoDialog(
 }
 
 @Composable
-fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> Unit = {}, modifier: Modifier = Modifier) {
+fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> Unit = {}, onBackPressed: () -> Unit = {}, modifier: Modifier = Modifier) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     var currentVideoUrl by remember { mutableStateOf<String?>(null) }
     var currentOriginalUrl by remember { mutableStateOf<String?>(null) }
+    
+    // Handle back press
+    BackHandler(enabled = currentScreen != Screen.Home) {
+        when (currentScreen) {
+            is Screen.VideoPlayer -> {
+                currentScreen = Screen.Home
+                currentVideoUrl = null
+                currentOriginalUrl = null
+            }
+            is Screen.Favorites -> {
+                currentScreen = Screen.Home
+            }
+            is Screen.Home -> {
+                // This shouldn't happen due to enabled condition, but handle anyway
+                onBackPressed()
+            }
+        }
+    }
     
     when (currentScreen) {
         is Screen.Home -> {
