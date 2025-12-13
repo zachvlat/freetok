@@ -1,5 +1,5 @@
 # FreeTok
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/236fcb29-cd02-4df1-ac68-c6d0d2ad72ac" />
+<img width="250" alt="image" src="https://github.com/user-attachments/assets/69c2ba47-da88-4a56-aac4-afe60a1e33c5" />
 
 ## What?
 It's an app that lets you watch TikTok videos natively on Android, without the official TikTok app.
