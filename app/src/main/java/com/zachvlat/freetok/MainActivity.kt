@@ -8,6 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +34,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             FreetokTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    TikTokDownloader(
+                    MainScreen(
                         context = this@MainActivity,
                         initialUrl = sharedUrl,
                         modifier = Modifier.padding(innerPadding)
@@ -66,11 +68,70 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun TikTokDownloader(context: Context, initialUrl: String? = null, modifier: Modifier = Modifier) {
+fun MainScreen(context: Context, initialUrl: String? = null, modifier: Modifier = Modifier) {
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
+    var currentVideoUrl by remember { mutableStateOf<String?>(null) }
+    var currentOriginalUrl by remember { mutableStateOf<String?>(null) }
+    
+    when (currentScreen) {
+        is Screen.Home -> {
+            TikTokDownloader(
+                context = context,
+                initialUrl = initialUrl,
+                onVideoDownloaded = { localPath, originalUrl ->
+                    currentVideoUrl = localPath
+                    currentOriginalUrl = originalUrl
+                    currentScreen = Screen.VideoPlayer
+                },
+                onFavoritesClick = { currentScreen = Screen.Favorites },
+                modifier = modifier
+            )
+        }
+        is Screen.VideoPlayer -> {
+            currentVideoUrl?.let { videoUrl ->
+                VideoPlayerScreen(
+                    videoUrl = videoUrl,
+                    originalUrl = currentOriginalUrl,
+                    onBack = { 
+                        currentScreen = Screen.Home
+                        currentVideoUrl = null
+                        currentOriginalUrl = null
+                    },
+                    modifier = modifier
+                )
+            }
+        }
+        is Screen.Favorites -> {
+            FavoritesListScreen(
+                onBack = { currentScreen = Screen.Home },
+                onVideoSelected = { localPath, originalUrl ->
+                    currentVideoUrl = localPath
+                    currentOriginalUrl = originalUrl
+                    currentScreen = Screen.VideoPlayer
+                },
+                modifier = modifier
+            )
+        }
+    }
+}
+
+sealed class Screen {
+    object Home : Screen()
+    object VideoPlayer : Screen()
+    object Favorites : Screen()
+}
+
+@Composable
+fun TikTokDownloader(
+    context: Context, 
+    initialUrl: String? = null,
+    onVideoDownloaded: (String, String) -> Unit = { _, _ -> },
+    onFavoritesClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     var url by remember { mutableStateOf(initialUrl ?: "") }
     var isLoading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
-    var localVideoPath by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     
     // Auto-download if URL was shared from another app
@@ -83,8 +144,7 @@ fun TikTokDownloader(context: Context, initialUrl: String? = null, modifier: Mod
             try {
                 val localPath = TikTokDownloaderManager.downloadVideo(initialUrl, context)
                 if (localPath != null) {
-                    localVideoPath = localPath
-                    status = "Video downloaded successfully!"
+                    onVideoDownloaded(localPath, initialUrl)
                     android.util.Log.d("FreeTok", "Video downloaded to: $localPath")
                 } else {
                     status = "Failed to download video"
@@ -98,15 +158,6 @@ fun TikTokDownloader(context: Context, initialUrl: String? = null, modifier: Mod
                 android.util.Log.d("FreeTok", "Shared video download process finished")
             }
         }
-    }
-
-    localVideoPath?.let { path ->
-        VideoPlayerScreen(
-            videoUrl = path, 
-            onBack = { localVideoPath = null },
-            modifier = modifier
-        )
-        return
     }
 
     Column(
@@ -147,8 +198,7 @@ fun TikTokDownloader(context: Context, initialUrl: String? = null, modifier: Mod
                             status = "Extracting video URL..."
                             val localPath = TikTokDownloaderManager.downloadVideo(url, context)
                             if (localPath != null) {
-                                localVideoPath = localPath
-                                status = "Video downloaded successfully!"
+                                onVideoDownloaded(localPath, url)
                                 android.util.Log.d("FreeTok", "Video downloaded to: $localPath")
                             } else {
                                 status = "Failed to download video"
@@ -177,6 +227,21 @@ fun TikTokDownloader(context: Context, initialUrl: String? = null, modifier: Mod
             } else {
                 Text("Watch")
             }
+        }
+
+        // Favorites button
+        Button(
+            onClick = onFavoritesClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Text("My Favorites")
         }
 
         if (status.isNotEmpty()) {

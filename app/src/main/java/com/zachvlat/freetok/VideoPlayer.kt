@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -94,26 +98,100 @@ fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
 @Composable
 fun VideoPlayerScreen(
     videoUrl: String, 
+    originalUrl: String? = null,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isFavorite by remember { mutableStateOf(false) }
+    var showFavoriteMessage by remember { mutableStateOf<String?>(null) }
+    
+    // Check if video is already favorite
+    LaunchedEffect(originalUrl) {
+        originalUrl?.let { url ->
+            isFavorite = FavoritesManager.isFavorite(context, url)
+        }
+    }
+    
     Box(modifier = modifier.fillMaxSize()) {
         VideoPlayer(
             videoUrl = videoUrl,
             modifier = Modifier.fillMaxSize()
         )
         
-        IconButton(
-            onClick = onBack,
+        // Top row with back and favorite buttons
+        Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                tint = Color.White
-            )
+            IconButton(
+                onClick = onBack
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            
+            originalUrl?.let { url ->
+                IconButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            if (isFavorite) {
+                                val success = FavoritesManager.removeFavoriteByUrl(context, url)
+                                if (success) {
+                                    isFavorite = false
+                                    showFavoriteMessage = "Removed from favorites"
+                                }
+                            } else {
+                                val success = FavoritesManager.addFavorite(context, url, videoUrl)
+                                if (success) {
+                                    isFavorite = true
+                                    showFavoriteMessage = "Added to favorites"
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (isFavorite) Color.Red else Color.White
+                    )
+                }
+            }
+        }
+    }
+    
+    // Show favorite action message
+    showFavoriteMessage?.let { message ->
+        LaunchedEffect(message) {
+            kotlinx.coroutines.delay(2000)
+            showFavoriteMessage = null
+        }
+        
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier.padding(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                )
+            ) {
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
         }
     }
 }

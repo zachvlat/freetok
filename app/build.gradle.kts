@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -14,8 +15,8 @@ android {
         applicationId = "com.zachvlat.freetok"
         minSdk = 35
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -58,6 +59,9 @@ dependencies {
     // Video player
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
+    
+    // Serialization for favorites storage
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
