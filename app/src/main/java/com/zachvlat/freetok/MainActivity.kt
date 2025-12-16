@@ -136,6 +136,7 @@ fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> 
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     var currentVideoUrl by remember { mutableStateOf<String?>(null) }
     var currentOriginalUrl by remember { mutableStateOf<String?>(null) }
+    var shouldClearUrl by remember { mutableStateOf(false) }
     
     // Handle back press
     BackHandler(enabled = currentScreen != Screen.Home) {
@@ -144,9 +145,11 @@ fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> 
                 currentScreen = Screen.Home
                 currentVideoUrl = null
                 currentOriginalUrl = null
+                shouldClearUrl = true
             }
             is Screen.Favorites -> {
                 currentScreen = Screen.Home
+                shouldClearUrl = true
             }
             is Screen.Home -> {
                 // This shouldn't happen due to enabled condition, but handle anyway
@@ -160,6 +163,8 @@ fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> 
             TikTokDownloader(
                 context = context,
                 initialUrl = initialUrl,
+                shouldClearUrl = shouldClearUrl,
+                onUrlCleared = { shouldClearUrl = false },
                 onVideoDownloaded = { localPath, originalUrl ->
                     currentVideoUrl = localPath
                     currentOriginalUrl = originalUrl
@@ -208,6 +213,8 @@ sealed class Screen {
 fun TikTokDownloader(
     context: Context, 
     initialUrl: String? = null,
+    shouldClearUrl: Boolean = false,
+    onUrlCleared: () -> Unit = {},
     onVideoDownloaded: (String, String) -> Unit = { _, _ -> },
     onFavoritesClick: () -> Unit = {},
     onInfoClick: () -> Unit = {},
@@ -217,6 +224,15 @@ fun TikTokDownloader(
     var isLoading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+    
+    // Clear URL when shouldClearUrl is true
+    LaunchedEffect(shouldClearUrl) {
+        if (shouldClearUrl) {
+            url = ""
+            onUrlCleared()
+            android.util.Log.d("FreeTok", "URL cleared due to back navigation")
+        }
+    }
     
     // Auto-download if URL was shared from another app
     LaunchedEffect(initialUrl) {
