@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeTok - Native TikTok Video Player for Android</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #25F4EE;
+            --secondary-color: #FE2C55;
+            --dark-bg: #0F0F0F;
+            --card-bg: #1A1A1A;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0B0;
+            --accent: #FF0050;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            padding: 2rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 4rem 0;
+            text-align: center;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero-text {
+            text-align: left;
+            animation: fadeInLeft 0.8s ease;
+        }
+
+        .hero-text h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero-text p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .hero-image {
+            animation: fadeInRight 0.8s ease;
+        }
+
+        .phone-mockup {
+            background: var(--card-bg);
+            border-radius: 2rem;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            transform: perspective(1000px) rotateY(-5deg);
+            transition: transform 0.3s ease;
+        }
+
+        .phone-mockup:hover {
+            transform: perspective(1000px) rotateY(0deg);
+        }
+
+        .phone-screen {
+            background: url('assets/screenshot.png') center center/cover;
+            border-radius: 1rem;
+            height: 400px;
+            position: relative;
+        }
+
+        /* Download Buttons */
+        .download-section {
+            margin: 3rem 0;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .download-btn:hover::before {
+            left: 100%;
+        }
+
+        .github-btn {
+            background: #333;
+            color: white;
+            min-width: 220px;
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .github-btn:hover {
+            background: #555;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .obtainium-btn {
+            background: #333;
+            color: white;
+            min-width: 220px;
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .obtainium-btn:hover {
+            background: #555;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .qr-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .qr-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .qr-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .qr-placeholder {
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 0.5rem;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 4rem 0;
+            background: rgba(26,26,26,0.5);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+
+        /* How it works */
+        .how-it-works {
+            padding: 4rem 0;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .step {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .step h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .step p {
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark-bg);
+            padding: 2rem 0;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .social-links {
+            margin-bottom: 1rem;
+        }
+
+        .social-links a {
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            margin: 0 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .hero-text {
+                text-align: center;
+            }
+
+            .hero-text h1 {
+                font-size: 2rem;
+            }
+
+            .qr-section {
+                grid-template-columns: 1fr;
+            }
+
+            .download-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .download-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .logo {
+                font-size: 2.5rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Section Titles */
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+        }
+
+        /* Badges */
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="app/src/main/res/mipmap-xxxhdpi/freetok.png" alt="FreeTok Logo" class="app-icon">
+            <div class="logo">FreeTok</div>
+            <div class="tagline">Watch TikTok videos natively on Android</div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>No TikTok App Required</h1>
+                    <p>FreeTok lets you watch TikTok videos natively on Android without the official app. Simply share a TikTok URL to FreeTok and watch without distractions.</p>
+                    
+                    <div class="badges">
+                        <span class="badge"><i class="fas fa-check-circle"></i> No Account Required</span>
+                        <span class="badge"><i class="fas fa-check-circle"></i> Ad-Free Experience</span>
+                        <span class="badge"><i class="fas fa-check-circle"></i> Open Source</span>
+                    </div>
+
+                    <div class="download-section">
+                        <div class="download-buttons">
+                            <a href="https://github.com/zachvlat/freetok/releases/latest" class="download-btn github-btn" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-github"></i>
+                                Download from GitHub
+                            </a>
+                            <a href="obtainium://app/{&quot;id&quot;%3A&quot;com.zachvlat.freetok&quot;%2C&quot;url&quot;%3A&quot;https%3A%2F%2Fgithub.com%2Fzachvlat%2Ffreetok&quot;%2C&quot;author&quot;%3A&quot;zachvlat&quot;%2C&quot;name&quot;%3A&quot;FreeTok&quot;%2C&quot;preferredApkIndex&quot;%3A0%2C&quot;additionalSettings&quot;%3A&quot;{\\&quot;includePrereleases\\&quot;%3Afalse%2C\\&quot;fallbackToOlderReleases\\&quot;%3Atrue%2C\\&quot;filterReleaseTitlesByRegEx\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;filterReleaseNotesByRegEx\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;verifyLatestTag\\&quot;%3Afalse%2C\\&quot;sortMethodChoice\\&quot;%3A\\&quot;date\\&quot;%2C\\&quot;useLatestAssetDateAsReleaseDate\\&quot;%3Afalse%2C\\&quot;releaseTitleAsVersion\\&quot;%3Afalse%2C\\&quot;trackOnly\\&quot;%3Afalse%2C\\&quot;versionExtractionRegEx\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;matchGroupToUse\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;versionDetection\\&quot;%3Afalse%2C\\&quot;releaseDateAsVersion\\&quot;%3Afalse%2C\\&quot;useVersionCodeAsOSVersion\\&quot;%3Afalse%2C\\&quot;apkFilterRegEx\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;invertAPKFilter\\&quot;%3Afalse%2C\\&quot;autoApkFilterByArch\\&quot;%3Atrue%2C\\&quot;appName\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;appAuthor\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;shizukuPretendToBeGooglePlay\\&quot;%3Afalse%2C\\&quot;allowInsecure\\&quot;%3Afalse%2C\\&quot;exemptFromBackgroundUpdates\\&quot;%3Afalse%2C\\&quot;skipUpdateNotifications\\&quot;%3Afalse%2C\\&quot;about\\&quot;%3A\\&quot;\\&quot;%2C\\&quot;refreshBeforeDownload\\&quot;%3Afalse%2C\\&quot;includeZips\\&quot;%3Afalse%2C\\&quot;zippedApkFilterRegEx\\&quot;%3A\\&quot;\\&quot;}&quot;%2C&quot;overrideSource&quot;%3Anull}%0A%0A" class="download-btn obtainium-btn" target="_blank" rel="noopener noreferrer" aria-label="Get it on Obtainium">
+                                <svg viewBox="0 0 192.00 192.00" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="enable-background:new 0 0 192 192" fill="#ffffff" width="20" height="20" style="margin-right: 8px;">
+                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                    <g id="SVGRepo_iconCarrier">
+                                        <path d="m92.2 44.3 10.5 29.2c.6 1.8 2.6 2.7 4.3 2l12.3-4.4c2.7-1 5.3 1.7 4.3 4.4L110 111.7c-.7 1.9-3 2.8-4.8 1.8L70.5 94.8c-2.6-1.4-2.3-5.2.4-6.2l14.5-5.3c1.8-.7 2.7-2.6 2-4.4L75.8 49.2c-.7-1.7-2.6-2.6-4.3-1.9l-31 11.5c-.9.3-1.6 1.1-2 2l-16.2 42.8c-.6 1.6 0 3.3 1.5 4.1l99 55.8c1.8 1 4 .2 4.8-1.7l42.2-106c.6-1.6 0-3.3-1.5-4.2l-40.5-23c-.8-.5-1.8-.5-2.7-.2L94.2 40c-1.8.7-2.7 2.6-2 4.3z" style="fill:none;stroke:#ffffff;stroke-width:12;stroke-miterlimit:10"></path>
+                                    </g>
+                                </svg>
+                                Install with Obtainium
+                            </a>
+                        </div>
+
+                        <div class="qr-section">
+                            <div class="qr-card">
+                                <div class="qr-placeholder">
+                                    <i class="fas fa-qrcode fa-2x"></i>
+                                </div>
+                                <h3>GitHub Releases</h3>
+                                <p>Download the latest APK directly from GitHub releases</p>
+                            </div>
+                            <div class="qr-card">
+                                <div class="qr-placeholder">
+                                    <i class="fas fa-qrcode fa-2x"></i>
+                                </div>
+                                <h3>Obtainium</h3>
+                                <p>Auto-updates via Obtainium app store</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-image">
+                    <div class="phone-mockup">
+                        <div class="phone-screen">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Features</h2>
+            <p class="section-subtitle">Everything you need for a great TikTok experience</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-share-alt"></i>
+                    </div>
+                    <h3>Share Integration</h3>
+                    <p>Share TikTok videos directly to FreeTok from any app</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <h3>URL Support</h3>
+                    <p>Open TikTok links directly with "Open by default" setting</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>Save Favorites</h3>
+                    <p>Build your personal collection of favorite videos</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
+                    <h3>Native Playback</h3>
+                    <p>Smooth video playback using ExoPlayer</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Privacy First</h3>
+                    <p>No tracking, no ads, no data collection</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3>Open Source</h3>
+                    <p>Fully transparent and community-driven development</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Get started in three simple steps</p>
+            
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Share or Paste URL</h3>
+                    <p>Share a TikTok video to FreeTok or paste the URL directly</p>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Auto Download</h3>
+                    <p>FreeTok automatically processes and downloads the video</p>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Watch & Save</h3>
+                    <p>Enjoy the video natively and save it to favorites</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="social-links">
+                <a href="https://github.com/zachvlat/freetok" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="https://github.com/zachvlat/freetok/issues" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-bug"></i>
+                </a>
+            </div>
+            <p>&copy; 2024 FreeTok. Open source and privacy-focused.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Add smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Add intersection observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = entry.target.style.animation || 'fadeInUp 0.8s ease both';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card, .step, .qr-card').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
