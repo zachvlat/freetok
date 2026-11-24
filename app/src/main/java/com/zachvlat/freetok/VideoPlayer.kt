@@ -1,6 +1,5 @@
 package com.zachvlat.freetok
 
-import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -16,32 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-
-class VideoPlayerViewModel : ViewModel() {
-    private val _videoUrl = MutableStateFlow<String?>(null)
-    val videoUrl: StateFlow<String?> = _videoUrl
-
-    fun setVideoUrl(url: String) {
-        _videoUrl.value = url
-    }
-}
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -56,7 +37,6 @@ fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
                 "Origin" to "https://www.tiktok.com",
                 "Accept" to "*/*",
                 "Accept-Language" to "en-US,en;q=0.9",
-                "Accept-Encoding" to "gzip, deflate, br",
                 "Connection" to "keep-alive"
             ))
             setConnectTimeoutMs(30000)
@@ -99,6 +79,7 @@ fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
 fun VideoPlayerScreen(
     videoUrl: String, 
     originalUrl: String? = null,
+    videoTitle: String? = null,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -150,7 +131,7 @@ fun VideoPlayerScreen(
                                     showFavoriteMessage = "Removed from favorites"
                                 }
                             } else {
-                                val success = FavoritesManager.addFavorite(context, url, videoUrl)
+                                val success = FavoritesManager.addFavorite(context, url, videoUrl, videoTitle)
                                 if (success) {
                                     isFavorite = true
                                     showFavoriteMessage = "Added to favorites"

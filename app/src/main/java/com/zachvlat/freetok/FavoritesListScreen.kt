@@ -1,6 +1,5 @@
 package com.zachvlat.freetok
 
-import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,16 +13,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+private val favoriteDateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+
 @Composable
 fun FavoritesListScreen(
     onBack: () -> Unit = {},
-    onVideoSelected: (String, String) -> Unit = { _, _ -> },
+    onVideoSelected: (String, String, String?) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -81,7 +83,7 @@ fun FavoritesListScreen(
                     items(favorites) { favorite ->
                         FavoriteVideoItem(
                             favorite = favorite,
-                            onPlay = { onVideoSelected(favorite.localPath, favorite.originalUrl) },
+                            onPlay = { onVideoSelected(favorite.localPath, favorite.originalUrl, favorite.title) },
                             onDelete = {
                                 coroutineScope.launch {
                                     val success = FavoritesManager.removeFavorite(context, favorite.id)
@@ -134,8 +136,6 @@ fun FavoriteVideoItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -162,12 +162,14 @@ fun FavoriteVideoItem(
                     .padding(horizontal = 16.dp)
             ) {
                 Text(
-                    text = "TikTok Video",
+                    text = favorite.title ?: "TikTok Video",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Saved: ${dateFormat.format(Date(favorite.timestamp))}",
+                    text = "Saved: ${favoriteDateFormatter.format(Date(favorite.timestamp))}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

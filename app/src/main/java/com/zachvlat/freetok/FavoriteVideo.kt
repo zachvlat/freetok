@@ -7,7 +7,6 @@ data class FavoriteVideo(
     val id: String,
     val originalUrl: String,
     val localPath: String,
-    val thumbnailPath: String? = null,
     val timestamp: Long,
     val title: String? = null
 )

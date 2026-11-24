@@ -21,20 +21,19 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import com.zachvlat.freetok.ui.theme.FreetokTheme
 
 class MainActivity : ComponentActivity() {
+    private val incomingUrl = mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        // Handle incoming intent
-        val sharedUrl = getSharedUrl(intent)
+        incomingUrl.value = getSharedUrl(intent)
         
         setContent {
             var showInfoDialog by remember { mutableStateOf(false) }
@@ -44,7 +43,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MainScreen(
                         context = this@MainActivity,
-                        initialUrl = sharedUrl,
+                        initialUrl = incomingUrl.value,
                         onInfoClick = { showInfoDialog = true },
                         onBackPressed = { backDispatcher.onBackPressed() },
                         modifier = Modifier.padding(innerPadding)
@@ -68,9 +67,7 @@ class MainActivity : ComponentActivity() {
     // Handle new intent when app is already running
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        val sharedUrl = getSharedUrl(intent)
-        // Update the UI with the new URL
-        // This will be handled in the composable
+        incomingUrl.value = getSharedUrl(intent)
     }
     
     private fun getSharedUrl(intent: Intent?): String? {
@@ -136,25 +133,41 @@ fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> 
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     var currentVideoUrl by remember { mutableStateOf<String?>(null) }
     var currentOriginalUrl by remember { mutableStateOf<String?>(null) }
-    var shouldClearUrl by remember { mutableStateOf(false) }
-    
+    var currentVideoTitle by remember { mutableStateOf<String?>(null) }
+    var playerOrigin by remember { mutableStateOf<Screen>(Screen.Home) }
+    var urlInput by rememberSaveable { mutableStateOf(initialUrl ?: "") }
+    var pendingSharedUrl by rememberSaveable { mutableStateOf(initialUrl) }
+    var handledUrl by rememberSaveable { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(initialUrl) {
+        if (!initialUrl.isNullOrBlank() && initialUrl != handledUrl) {
+            handledUrl = initialUrl
+            urlInput = initialUrl
+            pendingSharedUrl = initialUrl
+        }
+    }
+
+    fun openPlayer(localPath: String, originalUrl: String?, title: String?, from: Screen) {
+        currentVideoUrl = localPath
+        currentOriginalUrl = originalUrl
+        currentVideoTitle = title
+        playerOrigin = from
+        currentScreen = Screen.VideoPlayer
+    }
+
+    fun closePlayer() {
+        currentScreen = playerOrigin
+        currentVideoUrl = null
+        currentOriginalUrl = null
+        currentVideoTitle = null
+    }
+
     // Handle back press
     BackHandler(enabled = currentScreen != Screen.Home) {
         when (currentScreen) {
-            is Screen.VideoPlayer -> {
-                currentScreen = Screen.Home
-                currentVideoUrl = null
-                currentOriginalUrl = null
-                shouldClearUrl = true
-            }
-            is Screen.Favorites -> {
-                currentScreen = Screen.Home
-                shouldClearUrl = true
-            }
-            is Screen.Home -> {
-                // This shouldn't happen due to enabled condition, but handle anyway
-                onBackPressed()
-            }
+            is Screen.VideoPlayer -> closePlayer()
+            is Screen.Favorites -> currentScreen = Screen.Home
+            is Screen.Home -> onBackPressed()
         }
     }
     
@@ -162,15 +175,15 @@ fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> 
         is Screen.Home -> {
             TikTokDownloader(
                 context = context,
-                initialUrl = initialUrl,
-                shouldClearUrl = shouldClearUrl,
-                onUrlCleared = { shouldClearUrl = false },
-                onVideoDownloaded = { localPath, originalUrl ->
-                    currentVideoUrl = localPath
-                    currentOriginalUrl = originalUrl
-                    currentScreen = Screen.VideoPlayer
+                url = urlInput,
+                onUrlChange = { urlInput = it },
+                initialUrl = pendingSharedUrl,
+                onUrlConsumed = { pendingSharedUrl = null },
+                onVideoDownloaded = { localPath, originalUrl, title -> openPlayer(localPath, originalUrl, title, Screen.Home) },
+                onFavoritesClick = {
+                    pendingSharedUrl = null
+                    currentScreen = Screen.Favorites
                 },
-                onFavoritesClick = { currentScreen = Screen.Favorites },
                 onInfoClick = onInfoClick,
                 modifier = modifier
             )
@@ -180,11 +193,8 @@ fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> 
                 VideoPlayerScreen(
                     videoUrl = videoUrl,
                     originalUrl = currentOriginalUrl,
-                    onBack = { 
-                        currentScreen = Screen.Home
-                        currentVideoUrl = null
-                        currentOriginalUrl = null
-                    },
+                    videoTitle = currentVideoTitle,
+                    onBack = { closePlayer() },
                     modifier = modifier
                 )
             }
@@ -192,11 +202,7 @@ fun MainScreen(context: Context, initialUrl: String? = null, onInfoClick: () -> 
         is Screen.Favorites -> {
             FavoritesListScreen(
                 onBack = { currentScreen = Screen.Home },
-                onVideoSelected = { localPath, originalUrl ->
-                    currentVideoUrl = localPath
-                    currentOriginalUrl = originalUrl
-                    currentScreen = Screen.VideoPlayer
-                },
+                onVideoSelected = { localPath, originalUrl, title -> openPlayer(localPath, originalUrl, title, Screen.Favorites) },
                 modifier = modifier
             )
         }
@@ -211,51 +217,38 @@ sealed class Screen {
 
 @Composable
 fun TikTokDownloader(
-    context: Context, 
+    context: Context,
+    url: String,
+    onUrlChange: (String) -> Unit,
     initialUrl: String? = null,
-    shouldClearUrl: Boolean = false,
-    onUrlCleared: () -> Unit = {},
-    onVideoDownloaded: (String, String) -> Unit = { _, _ -> },
+    onUrlConsumed: () -> Unit = {},
+    onVideoDownloaded: (String, String, String?) -> Unit = { _, _, _ -> },
     onFavoritesClick: () -> Unit = {},
     onInfoClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var url by remember { mutableStateOf(initialUrl ?: "") }
     var isLoading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     
-    // Clear URL when shouldClearUrl is true
-    LaunchedEffect(shouldClearUrl) {
-        if (shouldClearUrl) {
-            url = ""
-            onUrlCleared()
-            android.util.Log.d("FreeTok", "URL cleared due to back navigation")
-        }
-    }
-    
-    // Auto-download if URL was shared from another app
+    // Auto-download a shared URL once, not again when we come back from the player
     LaunchedEffect(initialUrl) {
         if (!initialUrl.isNullOrBlank() && url.isNotBlank()) {
-            android.util.Log.d("FreeTok", "Auto-downloading shared URL: $initialUrl")
             isLoading = true
             status = "Processing..."
             
             try {
-                val localPath = TikTokDownloaderManager.downloadVideo(initialUrl, context)
-                if (localPath != null) {
-                    onVideoDownloaded(localPath, initialUrl)
-                    android.util.Log.d("FreeTok", "Video downloaded to: $localPath")
+                val result = TikTokDownloaderManager.downloadVideo(initialUrl, context)
+                if (result != null) {
+                    onVideoDownloaded(result.first, initialUrl, result.second)
                 } else {
                     status = "Failed to download video"
-                    android.util.Log.e("FreeTok", "Failed to download shared video")
                 }
             } catch (e: Exception) {
                 status = "Error: ${e.message}"
-                android.util.Log.e("FreeTok", "Exception during shared video download", e)
             } finally {
                 isLoading = false
-                android.util.Log.d("FreeTok", "Shared video download process finished")
+                onUrlConsumed()
             }
         }
     }
@@ -290,7 +283,7 @@ fun TikTokDownloader(
 
             OutlinedTextField(
                 value = url,
-                onValueChange = { url = it },
+                onValueChange = onUrlChange,
                 label = { Text("Paste TikTok URL") },
                 placeholder = { Text("https://tiktok.com/...") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -302,33 +295,26 @@ fun TikTokDownloader(
 
             Button(
                 onClick = {
-                    android.util.Log.d("FreeTok", "Watch button clicked, URL: $url")
                     if (url.isNotBlank()) {
+                        onUrlConsumed()
                         isLoading = true
                         status = "Processing..."
-                        android.util.Log.d("FreeTok", "Starting download process")
                         
                         coroutineScope.launch {
                             try {
                                 status = "Extracting video URL..."
-                                val localPath = TikTokDownloaderManager.downloadVideo(url, context)
-                                if (localPath != null) {
-                                    onVideoDownloaded(localPath, url)
-                                    android.util.Log.d("FreeTok", "Video downloaded to: $localPath")
+                                val result = TikTokDownloaderManager.downloadVideo(url, context)
+                                if (result != null) {
+                                    onVideoDownloaded(result.first, url, result.second)
                                 } else {
                                     status = "Failed to download video"
-                                    android.util.Log.e("FreeTok", "Failed to download video")
                                 }
                             } catch (e: Exception) {
                                 status = "Error: ${e.message}"
-                                android.util.Log.e("FreeTok", "Exception during download", e)
                             } finally {
                                 isLoading = false
-                                android.util.Log.d("FreeTok", "Download process finished")
                             }
                         }
-                    } else {
-                        android.util.Log.d("FreeTok", "URL is blank")
                     }
                 },
                 enabled = !isLoading && url.isNotBlank(),
@@ -367,13 +353,5 @@ fun TikTokDownloader(
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun TikTokDownloaderPreview() {
-    FreetokTheme {
-        // TikTokDownloader() // Skip preview since it requires Context
     }
 }
